@@ -1,7 +1,7 @@
 package com.usp.app;
 import java.io.File;
 
-import com.usp.machines.FileServer;
+import com.usp.machines.InterfacePeer;
 import com.usp.machines.InvalidParametersException;
 
 public class EACHare { //programa principal
@@ -11,7 +11,7 @@ public class EACHare { //programa principal
 		int port = Integer.parseInt(params[1]); //Porta
 	    String neighborsTxt = params[2]; //vizinhos.txt
 	    String fileDirectory = params[3]; //diretório de arquivos
-		FileServer peer = new FileServer(address, port, neighborsTxt, fileDirectory);
+		InterfacePeer peer = new InterfacePeer(address, port, neighborsTxt, fileDirectory);
 		peer.run(); //Roda o servidor de arquivo
 	}
 	
