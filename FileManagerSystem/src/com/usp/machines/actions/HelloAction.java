@@ -16,7 +16,8 @@ public class HelloAction implements Action{
 		String address = result[0]; //IP
 		int port = Integer.parseInt(result[1]); //porta
 		boolean notExists = true;
-		for(NeighborPeer peer: list) {
+		for(int i = 0; i < list.size(); i++) {
+			NeighborPeer peer = list.get(i);
 			if(peer.getAddress().equals(address) && peer.getPort() == port) {
 				peer.setOnline(); //atualiza status
 				peer.printUpdate(Status.ONLINE);

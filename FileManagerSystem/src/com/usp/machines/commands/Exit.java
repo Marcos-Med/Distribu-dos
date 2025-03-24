@@ -17,7 +17,8 @@ public class Exit implements Command { //Comando "Sair"
 	
 	public void execute(String[] args) {
 		System.out.println("Saindo...");
-		for(NeighborPeer peer:list) { //Se peer estiver online, mande a mensagem BYE
+		for(int i = 0; i < list.size(); i++) { //Se peer estiver online, mande a mensagem BYE
+			NeighborPeer peer = list.get(i);
 			try {
 				if(peer.getStatus() == Status.ONLINE) {
 					args[1] = Integer.toString(FilePeer.getInstance().tick());
@@ -25,7 +26,9 @@ public class Exit implements Command { //Comando "Sair"
 				}
 			}
 			catch(IOException e) {
-				e.printStackTrace();
+				//Peer já estava offline
+				peer.setOffline();
+				peer.printUpdate(Status.OFFLINE);
 			}
 		}
 	}

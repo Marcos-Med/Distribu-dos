@@ -15,8 +15,14 @@ public class ServerPeer implements Runnable {
 		running = true;
 	}
 	
-	public void off() { //para o sistema
+	public void off() { //parar o sistema
 		running = false;
+		try {
+			serverSocket.close();
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void run() {
@@ -24,12 +30,11 @@ public class ServerPeer implements Runnable {
 			serverSocket = new ServerSocket(peer.getPort());
 			while(running) { //enquanto está ligado
 				Socket socket = serverSocket.accept();
-				peer.tick();
 				new Thread(new ClientRequest(socket, peer)).start(); //trata requisições de peers clientes
 			}
 		}
 		catch(IOException e) {
-			e.printStackTrace();
+			//Encerrou o programa
 		}
 	}
 }

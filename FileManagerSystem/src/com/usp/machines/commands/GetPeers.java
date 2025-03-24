@@ -19,7 +19,8 @@ public class GetPeers implements Command { //Comando GET_PEERS
 	}
 	
 	public void execute(String[] args) {
-		for(NeighborPeer peer: list) {
+		for(int i = 0; i < list.size(); i++) {
+			NeighborPeer peer = list.get(i);
 			try {
 				args[1] = Integer.toString(FilePeer.getInstance().tick());
 				String response = peer.connect(TypeMessages.GET_PEERS, args); //envia GET_PEERS para cada peer
@@ -32,7 +33,6 @@ public class GetPeers implements Command { //Comando GET_PEERS
 			catch(IOException e){//Caso peer esteja offline
 				peer.setOffline();
 				peer.printUpdate(Status.OFFLINE);
-				e.printStackTrace();
 			}
 		}
 	}

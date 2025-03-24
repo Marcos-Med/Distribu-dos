@@ -5,9 +5,15 @@ import com.usp.items.FilePeer;
 
 public class InterfacePeer {
 	private FilePeer peer;
+	private static Scanner input;
 	
 	public InterfacePeer(String address, int port, String FilePeers, String directory) {
 		peer = FilePeer.getInstance(address, port, FilePeers, directory);
+		input = new Scanner(System.in);
+	}
+	
+	public static Scanner getInput() {
+		return input;
 	}
 	
 	public String getAddress() { //retorna endereço IP
@@ -33,15 +39,17 @@ public class InterfacePeer {
 		ServerPeer serverPeer = new ServerPeer(peer);
 		Thread server = new Thread(serverPeer);//thread do servidor
 		server.start();
-		int codeIn;
+		int codeIn = -1;
 		do {
 			printCommands();
 			System.out.print(">");
-			Scanner input = new Scanner(System.in);
-			codeIn = input.nextInt(); //seleciona comando
-			peer.request(codeIn); //executa comando
-			input.close(); //fecha leitor de entrada
+			if(input.hasNextInt()) {
+				codeIn = input.nextInt(); //seleciona comando
+				peer.request(codeIn); //executa comando
+			}
+			else input.nextLine(); //Descarta entrada inválida
 		} while(codeIn != 9); //enquanto não digita "Sair"
+		input.close(); //fecha leitor de entrada
 	    serverPeer.off(); //encerra o servidor local
 	}
 }

@@ -23,18 +23,30 @@ public class ClientRequest implements Runnable{ //Thread para atender requisiç�
 			PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
 			String message;
 			while((message = input.readLine()) != null) { //Enquanto há requisições
-				String[] args = message.replace("\n", "").split(" ");
+				System.out.println("\nMensagem recebida:\"" + message + "\"");
+				server.tick();//incrementa o clock
+				String[] args = message.split(" ");
 				String command = args[2]; //tipo de mensagem recebida
 				String response = server.response(TypeMessages.valueOf(command), args); //processa a request
-				if(response != null) { //Caso haja resposta
-					output.print(response);//envia a resposta
-					output.flush();
+				if(response == null) response = "\n";  //Caso não haja resposta
+				else {
+					System.out.println("\nEncaminhando mensagem \"" + response.replace("\n", "") + "\" para " + args[0]);
 				}
+				System.out.print(">");
+				output.print(response);//envia a resposta
+				output.flush();
 			}
-			socket.close();//fecha conexão
 		}
 		catch(IOException e) {
 			e.printStackTrace();
+		}
+		finally {
+			try {
+				socket.close();//fecha conexão
+				
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

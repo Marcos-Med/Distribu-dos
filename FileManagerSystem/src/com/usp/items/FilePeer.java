@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import com.usp.machines.actions.*;
@@ -46,7 +47,7 @@ public class FilePeer {
 	}
 	
 	private void createListPeer(String FilePeers) { //inicia a lista de peers conhecidos
-		peerList = new ArrayList<>();
+		peerList = Collections.synchronizedList(new ArrayList<>());
 		try(BufferedReader br = new BufferedReader(new FileReader(FilePeers))){
 			String line;
 			while((line = br.readLine()) != null) { //enquanto há peers na lista
@@ -80,7 +81,7 @@ public class FilePeer {
 		commands.put(1, new ListPeers(peerList));
 		commands.put(2, new GetPeers(peerList));
 		commands.put(3, new ListFiles(fileDirectory));
-		commands.put(4, new Exit(peerList));
+		commands.put(9, new Exit(peerList));
 	}
 	
 	public String getAddress() { //retorna endereço IP
@@ -98,7 +99,8 @@ public class FilePeer {
 	public void request(int command) { //emite comandos no próprio peer
 		String[] args = new String[2];
 		args[0] = address+":"+port;
-		commands.get(command).execute(args);
+		if(commands.containsKey(command)) commands.get(command).execute(args);
+		else System.out.println("Comando inválido!");
 	}
 	
 

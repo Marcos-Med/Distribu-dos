@@ -21,7 +21,8 @@ public class GetPeersAction implements Action {
 		String[] result = args[0].split(":");
 		String address = result[0];
 		int port = Integer.parseInt(result[1]);
-		for(NeighborPeer peer: list) {
+		for(int i = 0; i < list.size(); i++) {
+			NeighborPeer peer = list.get(i);
 			if(peer.getAddress().equals(address) && peer.getPort() == port)  {
 				len--; //não insere o remetente
 				break;
@@ -32,7 +33,8 @@ public class GetPeersAction implements Action {
 		rs[0] = filePeer.getAddress()+":"+filePeer.getPort(); //origem
 		rs[2] = Integer.toString(len); //quantidade
 		int i = 3;
-		for(NeighborPeer peer: list) {
+		for(int j = 0; j < list.size(); j++) {
+			NeighborPeer peer = list.get(j);
 			if(!peer.getAddress().equals(address) || !(peer.getPort() == port)) {
 				String idPeer = peer.getAddress() + ":" +
 						peer.getPort() + ":" + peer.getStatus() + ":0"; //identificação do peer na lista

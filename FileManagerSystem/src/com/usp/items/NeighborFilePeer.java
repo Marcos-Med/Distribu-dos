@@ -45,12 +45,16 @@ public class NeighborFilePeer implements NeighborPeer{ //Peer Conhecido
 	}
 	
 	public String connect(TypeMessages request, String[] args) throws IOException{ //envia comandos ao peer
+		String message = builderMessage.buildMessage(request, args);
+		System.out.println("Encaminhando mensagem \"" + message.replace("\n", "") + "\" para " +address+":"+port);
 		try(Socket socket = new Socket(address, port)){
 			PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
-			output.print(builderMessage.buildMessage(request, args)); //envia a requisição
+			output.print(message); //envia a requisição
 			output.flush();
 			BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			return input.readLine(); //retorna a resposta
+			message = input.readLine(); //resposta do peer
+			if(!message.equals("")) System.out.println("Resposta recebida:\"" + message + "\""); //se houve resposta
+			return message; //retorna a resposta
 		}
 	}
 }
