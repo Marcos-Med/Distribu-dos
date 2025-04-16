@@ -8,16 +8,26 @@ public class NeighborFilePeer implements NeighborPeer{ //Peer Conhecido
 	private int port;
 	private Status status;
 	private BuilderMessage builderMessage;
+	private int clock;
 	
 	public NeighborFilePeer(String address, int port) {
 		this.address = address;
 		this.port = port;
+		clock = 0;
 		status = Status.OFFLINE;
 		builderMessage = BuilderMessage.getInstance();
 	}
 	
 	public String getAddress() { //retorna endereço IP
 		return address;
+	}
+	
+	public int getClock() {
+		return clock; //retorna o clock conhecido do peer
+	}
+	
+	public synchronized void setClock(int clock) {
+		if(this.clock < clock) this.clock = clock; //altera se o valor recebido for maior
 	}
 	
 	public int getPort() { //retorna número de Porta

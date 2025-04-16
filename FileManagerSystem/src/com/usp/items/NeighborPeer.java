@@ -11,4 +11,6 @@ public interface NeighborPeer { //Interface para peers conhecidos
 	public void setOffline();
 	public void printUpdate(Status status);
 	public void printAddPeer(Status status);
+	public int getClock();
+	public void setClock(int clock);
 }
