@@ -24,8 +24,9 @@ public class ClientRequest implements Runnable{ //Thread para atender requisiç�
 			String message;
 			while((message = input.readLine()) != null) { //Enquanto há requisições
 				System.out.println("\nMensagem recebida:\"" + message + "\"");
-				server.tick();//incrementa o clock
 				String[] args = message.split(" ");
+				int clock = Integer.parseInt(args[1]); //clock recebido
+				server.tick(clock);//altera o clock local
 				String command = args[2]; //tipo de mensagem recebida
 				String response = server.response(TypeMessages.valueOf(command), args); //processa a request
 				if(response == null) response = "\n";  //Caso não haja resposta

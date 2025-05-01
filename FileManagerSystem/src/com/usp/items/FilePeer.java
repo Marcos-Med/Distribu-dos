@@ -62,10 +62,21 @@ public class FilePeer {
 		
 	}
 	
-	public synchronized int tick() { //Aumenta o clock de forma sincronizada
+	private void printClock() {
+		System.out.println("Atualizando relógio para " + clock); //Imprime o valor do relógio
+	}
+	
+	public synchronized int tick() { //Alteração do clock ao enviar mensagens
 	      clock++; //Evita condição de corrida
-	      System.out.println("Atualizando relógio para " + clock);
+	      printClock();
 	      return clock;
+	}
+	
+	public synchronized int tick(int clock) { //Alteração do clock ao receber mensagens
+		if (this.clock < clock) this.clock = clock; //clock_local = max(clock_local, clock_msg)
+		this.clock++;
+		printClock();
+		return this.clock;
 	}
 	
 	private void initResponses() { //respostas disponíveis
