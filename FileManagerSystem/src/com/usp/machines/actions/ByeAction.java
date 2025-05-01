@@ -17,12 +17,14 @@ public class ByeAction implements Action {
 		String[] result = args[0].split(":");//<endereço>:<porta>
 		String address = result[0]; //IP
 		int port = Integer.parseInt(result[1]); //porta
+		int clock = Integer.parseInt(args[1]);//clock
 		boolean notExists = true;
 		for(int i = 0; i < list.size(); i++) {
 			NeighborPeer peer = list.get(i);
 			if(peer.getAddress().equals(address) && peer.getPort() == port) {
 				peer.setOffline(); //atualiza status
 				peer.printUpdate(Status.OFFLINE);
+				peer.setClock(clock);
 				notExists = false; //peer existe na lista
 				break;
 			}
@@ -31,6 +33,7 @@ public class ByeAction implements Action {
 			NeighborPeer peer = new NeighborFilePeer(address, port); //cria peer novo
 			peer.setOffline();
 			peer.printAddPeer(Status.OFFLINE);
+			peer.setClock(clock);
 			list.add(peer); //adiciona na lista
 		}
 		return null; //não há resposta
