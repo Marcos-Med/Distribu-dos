@@ -23,6 +23,10 @@ public class BuilderMessage { //Construtor de mensagens suportadas pelo sistema
 		actions.put(TypeMessages.BYE, new ByeMessage());
 		actions.put(TypeMessages.GET_PEERS, new GetPeersMessage());
 		actions.put(TypeMessages.PEER_LIST, new PeerListMessage());
+		actions.put(TypeMessages.LS_LIST, new LSListMessage());
+	    actions.put(TypeMessages.DL, new DLMessage());
+	    actions.put(TypeMessages.FILE, new FileMessage());
+	    actions.put(TypeMessages.LS, new LSMessage());
 	}
 	
 	public String buildMessage(TypeMessages type, String[] args) { //Constrói a mensagem

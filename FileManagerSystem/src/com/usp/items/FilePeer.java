@@ -9,10 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import com.usp.machines.actions.*;
 import com.usp.machines.commands.Command;
-import com.usp.machines.commands.Exit;
-import com.usp.machines.commands.GetPeers;
-import com.usp.machines.commands.ListFiles;
-import com.usp.machines.commands.ListPeers;
+import com.usp.machines.commands.*;
 
 public class FilePeer {
 	private static FilePeer object; //Design Patterns Singleton
@@ -85,6 +82,8 @@ public class FilePeer {
 		responses.put(TypeMessages.BYE, new ByeAction(peerList));
 		responses.put(TypeMessages.GET_PEERS, new GetPeersAction(peerList));
 		responses.put(TypeMessages.PEER_LIST, new PeerListAction(peerList));
+		responses.put(TypeMessages.LS, new LSAction(fileDirectory, peerList));
+	    responses.put(TypeMessages.DL, new DLAction(fileDirectory, peerList));
 	}
 	
 	private void initCommands() { //comandos disponíveis
@@ -93,6 +92,7 @@ public class FilePeer {
 		commands.put(2, new GetPeers(peerList));
 		commands.put(3, new ListFiles(fileDirectory));
 		commands.put(9, new Exit(peerList));
+		commands.put(4, new SearchFile(peerList, fileDirectory));
 	}
 	
 	public String getAddress() { //retorna endereço IP
