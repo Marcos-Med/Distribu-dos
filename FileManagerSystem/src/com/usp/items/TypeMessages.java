@@ -4,5 +4,9 @@ public enum TypeMessages { //Tipos de mensagens disponíveis no sistema
 	HELLO,
 	GET_PEERS,
 	PEER_LIST,
-	BYE
+	BYE,
+	LS,
+    LS_LIST,
+    DL,
+    FILE
 }
