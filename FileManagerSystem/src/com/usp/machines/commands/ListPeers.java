@@ -31,13 +31,14 @@ public class ListPeers implements Command { //Comando para lista os peers conhec
 				output += "[" + i + "]";
 				output = output + " " + peer.getAddress() + ":" + peer.getPort();
 				output += (" " + peer.getStatus());
+				output += (" (clock: " + peer.getClock() + ")");
 				System.out.println(output);
 				i++;
 			}
 			System.out.print(">");
 			if(input.hasNextInt()) {
 				option = input.nextInt();
-				if(option > 0 && option < list.size()) { //Se for selecionado um peer, mande HELLO
+				if(option > 0 && option <= list.size()) { //Se for selecionado um peer, mande HELLO
 					NeighborPeer peer = list.get(option - 1);
 					try {
 						args[1] = Integer.toString(FilePeer.getInstance().tick());
