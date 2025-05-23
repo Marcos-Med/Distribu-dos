@@ -16,6 +16,7 @@ public class FilePeer {
 	private String address; //IP
 	private int port; //Porta
 	private int clock;
+	private int chunk;
 	private String fileDirectory; //Diretório de arquivos
 	private List<NeighborPeer> peerList; //Lista de Peers conhecidos
 	private HashMap<TypeMessages, Action> responses; //respostas disponíveis no sistema (SERVER)
@@ -30,6 +31,7 @@ public class FilePeer {
 		initResponses();
 		initCommands();
 		clock = 0;
+		chunk = 256; //valor default
 		
 	}
 	
@@ -93,6 +95,7 @@ public class FilePeer {
 		commands.put(3, new ListFiles(fileDirectory));
 		commands.put(9, new Exit(peerList));
 		commands.put(4, new SearchFile(peerList, fileDirectory));
+		commands.put(6, new AlterChunk(this));
 	}
 	
 	public String getAddress() { //retorna endereço IP
@@ -101,6 +104,14 @@ public class FilePeer {
 	
 	public int getPort() { //retorna número de Porta
 		return port;
+	}
+	
+	public int getChunk() { //retorna o tamanho de cada chunk
+		return chunk;
+	}
+	
+	public void setChunk(int chunk) { //modifica o tamanho de chunk
+		this.chunk = chunk;
 	}
 	
 	public String response(TypeMessages type, String[] args) { //Responde uma request de algum peer
