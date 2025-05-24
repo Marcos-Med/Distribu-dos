@@ -7,8 +7,8 @@ import com.usp.items.NeighborPeer;
 import com.usp.items.Status;
 import com.usp.items.TypeMessages;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.Base64;
 import java.util.List;
 
@@ -48,20 +48,30 @@ public class DLAction implements Action {
 			list.add(peer); //adiciona na lista
 		}
         String filename = args[3];
+        int chunk = Integer.parseInt(args[4]);
+        int index_chunk = Integer.parseInt(args[5]);
         File file = new File(directory, filename); //abre diretório
         byte[] data;
-        try (FileInputStream fis = new FileInputStream(file)) { //leitura de arquive em Bytes
-            data = fis.readAllBytes();
+        int bytes;
+        try (RandomAccessFile raf = new RandomAccessFile(file.getPath(), "r")) { //leitura de arquivo em Bytes
+            long initPos = (long) chunk * index_chunk; //posição inicial
+            long tam = raf.length() - initPos;
+            bytes = (int) Math.min(tam, chunk); //quanto bytes para ler
+            byte[] buffer = new byte[bytes];
+            raf.seek(initPos);
+            raf.readFully(buffer);
+            data = buffer;//conteudo do chunk
         } catch (IOException e) {
             data = new byte[0];
+            bytes = 0;
         }
         String encoded = Base64.getEncoder().encodeToString(data); //codificação 64
         String[] msgArgs = new String[6];
         msgArgs[0] = args[0];
         msgArgs[1] = Integer.toString(FilePeer.getInstance().tick());
         msgArgs[2] = filename;
-        msgArgs[3] = args[4];
-        msgArgs[4] = args[5];
+        msgArgs[3] = Integer.toString(bytes);
+        msgArgs[4] = Integer.toString(index_chunk);
         msgArgs[5] = encoded;
         return builder.buildMessage(TypeMessages.FILE, msgArgs);
     }
