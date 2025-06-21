@@ -1,222 +1,233 @@
 package com.usp.machines.commands;
+
 import com.usp.items.FilePeer;
 import com.usp.items.TypeMessages;
 import com.usp.items.Status;
 import com.usp.items.NeighborPeer;
+import com.usp.items.StatsManager;
+import com.usp.items.StatisticRecord;
+import com.usp.machines.InterfacePeer;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Scanner;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.io.IOException;
-import com.usp.machines.InterfacePeer;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SearchFile implements Command { //Comando resposável por listar e buscar arquivos
-    private List<NeighborPeer> peerList;
-    private String directory;
+/**
+ * Comando responsável por listar e buscar arquivos na rede de peers,
+ * além de registrar estatísticas de download.
+ */
+public class SearchFile implements Command {
+    private final List<NeighborPeer> peerList;
+    private final String directory;
 
     public SearchFile(List<NeighborPeer> peerList, String directory) {
         this.peerList = peerList;
         this.directory = directory;
     }
 
+    @Override
     public void execute(String[] args) {
         Scanner input = InterfacePeer.getInput();
-        HashMap<Item, Item> catalog = new HashMap<>(); //catalogo de arquivos e respectivos peers
+        Map<Item, Item> catalog = new HashMap<>();
 
-        // varre peers online e solicita LS
+        // 1) Solicita lista de arquivos (LS) de cada peer online
         for (NeighborPeer peer : peerList) {
             if (peer.getStatus() == Status.ONLINE) {
                 try {
+                    // incrementa relógio e envia LS
                     args[1] = Integer.toString(FilePeer.getInstance().tick());
-                    String resp = peer.connect(TypeMessages.LS, args); //solicita os arquivos disponíveis
+                    String resp = peer.connect(TypeMessages.LS, args);
                     String[] parts = resp.split(" ");
                     FilePeer.getInstance().tick(Integer.parseInt(parts[1]));
-                    peer.setOnline(); 
-                    peer.printUpdate(Status.ONLINE);
-                    peer.setClock(Integer.parseInt(parts[1]));
+
                     int count = Integer.parseInt(parts[3]);
-                    for (int i = 0; i < count; i++) { //gera uma lista de arquivos
+                    for (int i = 0; i < count; i++) {
                         String info = parts[4 + i];
-                        String[] file = info.split(":"); 
+                        String[] file = info.split(":");
                         String name = file[0];
                         long size = Long.parseLong(file[1]);
-                        Item e = new Item(name, size, peer);
-                        if(catalog.containsKey(e)) {
-                        	catalog.get(e).addNeighbor(peer);//se já existe, apenas adiciona o peer que também contém o arquivo
+                        Item item = new Item(name, size, peer);
+                        if (catalog.containsKey(item)) {
+                            catalog.get(item).addNeighbor(peer);
+                        } else {
+                            catalog.put(item, item);
                         }
-                        else catalog.put(e, e);
                     }
                 } catch (IOException e) {
-                    peer.setOffline(); 
+                    peer.setOffline();
                     peer.printUpdate(Status.OFFLINE);
                 }
             }
         }
 
+        // 2) Exibe menu de arquivos encontrados
         System.out.println("Arquivos encontrados na rede:");
         System.out.println("Nome | Tamanho | Peer");
-        System.out.println("[ 0] <Cancelar> | |");
-        Collection<Item> values = catalog.values();
-        int i = 0;
-        for (Item e: values) {
-        	i++;
-            System.out.printf("[ %d] %s | %d | ", i, e.getName(), e.getSize()); //arquivos disponíveis
-            List<NeighborPeer> neighbors = e.getPeers();
-            for(int j = 0; j < neighbors.size(); j++) { //agrupa todos os peers que possuem o msm arquivo
-            	NeighborPeer p = neighbors.get(j);
-            	String address = p.getAddress()+":"+p.getPort();
-            	if(j != neighbors.size() - 1) address += ",";
-            	System.out.printf("%s ", address);
-            }
-            System.out.printf("\n");
-        }
+        System.out.println("[ 0] <Cancelar>");
         List<Item> options = new ArrayList<>(catalog.values());
-        System.out.print("Digite o numero do arquivo para fazer o download:\n>");
-        int opt = input.hasNextInt() ? input.nextInt() : 0;
-        if (opt > 0 && opt <= options.size()) {
-            Item choose = options.get(opt - 1); //arquivo escolhido
-            System.out.println("arquivo escolhido " + choose.getName());
-            int local_chunk = FilePeer.getInstance().getChunk(); //chunk local
-            int n_chunks = (int) choose.getSize() / local_chunk; // número de chunks
-            if(choose.getSize() % local_chunk != 0) n_chunks++;
-            String[] chunks = new String[n_chunks];
-            AtomicBoolean[] sucess = new AtomicBoolean[n_chunks];
-            List<Thread> threads = new LinkedList<>();
-            for(int j = 0; j < n_chunks; j++) {
-            	sucess[j] = new AtomicBoolean(true);//assume inicialmente que houve sucesso
-            	DownloadChunk task = new DownloadChunk(choose, j, local_chunk, chunks, args, sucess[j]);
-            	Thread thread = new Thread(task);
-            	threads.add(thread);
-            	thread.start();
+        for (int i = 0; i < options.size(); i++) {
+            Item e = options.get(i);
+            System.out.printf("[%2d] %s | %d | ", i + 1, e.getName(), e.getSize());
+            for (int j = 0; j < e.getPeers().size(); j++) {
+                NeighborPeer p = e.getPeers().get(j);
+                System.out.print(p.getAddress() + ":" + p.getPort()
+                                 + (j < e.getPeers().size() - 1 ? "," : ""));
             }
-            for(Thread thread: threads) { //continua apenas se todas as threads foram executadas
-            	try {
-            		thread.join();
-            	}
-            	catch(InterruptedException exceptionThread) {
-            		System.out.println("Thread interrompida");
-            	}
+            System.out.println();
+        }
+
+        // 3) Escolhe o arquivo para download
+        System.out.print("Digite o número do arquivo para fazer o download: ");
+        int choice = input.hasNextInt() ? input.nextInt() : 0;
+        if (choice <= 0 || choice > options.size()) return;
+
+        Item chosen = options.get(choice - 1);
+        System.out.println("Arquivo escolhido: " + chosen.getName());
+
+        int localChunk = FilePeer.getInstance().getChunk();
+        int nChunks = (int)(chosen.getSize() / localChunk) 
+                      + (chosen.getSize() % localChunk == 0 ? 0 : 1);
+
+        String[] chunks = new String[nChunks];
+        AtomicBoolean[] success = new AtomicBoolean[nChunks];
+        List<Thread> threads = new LinkedList<>();
+
+        // 4) Inicia medição de tempo
+        long startTime = System.nanoTime();
+
+        // 5) Cria e dispara threads de download de cada chunk
+        for (int j = 0; j < nChunks; j++) {
+            success[j] = new AtomicBoolean(true);
+            DownloadChunk task = new DownloadChunk(chosen, j, localChunk, chunks, args, success[j]);
+            Thread thread = new Thread(task);
+            threads.add(thread);
+            thread.start();
+        }
+
+        // 6) Aguarda todas finalizarem
+        for (Thread t : threads) {
+            try { t.join(); }
+            catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        }
+
+        // 7) Verifica sucesso
+        for (AtomicBoolean b : success) {
+            if (!b.get()) {
+                System.out.println("Não foi possível realizar o download");
+                return;
             }
-            boolean allOK = true;
-            for(AtomicBoolean s: sucess) {
-            	if(!s.get()) { //se alguma thread falhou
-            		allOK = false;
-            		break;
-            	}
+        }
+
+        // 8) Monta arquivo a partir dos chunks e grava localmente
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            for (String chunk : chunks) {
+                output.write(Base64.getDecoder().decode(chunk));
             }
-            if(!allOK) System.out.println("Não foi possível realizar o download");
-            else {
-            	ByteArrayOutputStream output = new ByteArrayOutputStream();
-            	for(String chunk: chunks) {
-            		byte[] data = Base64.getDecoder().decode(chunk);
-            		output.writeBytes(data);
-            	}
-            	File file = new File(directory, choose.getName()); //abre diretório
-            	try (FileOutputStream fos = new FileOutputStream(file)) {
-                    fos.write(output.toByteArray()); //salva arquivo
-                    System.out.println("Download do arquivo " + choose.getName() + " finalizado.");
+            File outFile = new File(directory, chosen.getName());
+            try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                fos.write(output.toByteArray());
+            }
+        } catch (IOException e) {
+            System.out.println("Não foi possível salvar o arquivo " + chosen.getName());
+            return;
+        }
+
+        // 9) Registra estatísticas de download
+        double duration = (System.nanoTime() - startTime) / 1e9;
+        int peerCount = chosen.getPeers().size();
+        long fileSize = chosen.getSize();
+        StatsManager.getInstance()
+                    .addRecord(new StatisticRecord(localChunk, peerCount, fileSize, duration));
+
+        // 10) Mensagem final
+        System.out.println("Download do arquivo " + chosen.getName() + " finalizado.");
+    }
+
+    /** Representa uma entrada de arquivo na rede, com peers que o possuem */
+    private static class Item {
+        private final String name;
+        private final long size;
+        private final List<NeighborPeer> peers = new ArrayList<>();
+
+        Item(String name, long size, NeighborPeer peer) {
+            this.name = name;
+            this.size = size;
+            this.peers.add(peer);
+        }
+
+        void addNeighbor(NeighborPeer peer) {
+            peers.add(peer);
+        }
+
+        String getName() { return name; }
+        long getSize()   { return size;  }
+        List<NeighborPeer> getPeers() { return peers; }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Item)) return false;
+            Item other = (Item) o;
+            return size == other.size && name.equals(other.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, size);
+        }
+    }
+
+    /** Thread que baixa um único chunk de forma concorrente */
+    private static class DownloadChunk implements Runnable {
+        private final Item file;
+        private final int index;
+        private final int chunkSize;
+        private final String[] chunks;
+        private final String[] args;
+        private final AtomicBoolean success;
+
+        DownloadChunk(Item file, int index, int chunkSize,
+                      String[] chunks, String[] args, AtomicBoolean success) {
+            this.file = file;
+            this.index = index;
+            this.chunkSize = chunkSize;
+            this.chunks = chunks;
+            this.args = args;
+            this.success = success;
+        }
+
+        @Override
+        public void run() {
+            int attempts = 0;
+            int total = file.getPeers().size();
+            while (attempts < total) {
+                NeighborPeer peer = file.getPeers().get((index + attempts) % total);
+                if (peer.getStatus() == Status.ONLINE) {
+                    try {
+                        args[1] = Integer.toString(FilePeer.getInstance().tick());
+                        String[] dlArgs = {
+                            peer.getAddress() + ":" + peer.getPort(),
+                            args[1],
+                            Integer.toString(chunkSize),
+                            Integer.toString(index)
+                        };
+                        String resp = peer.connect(TypeMessages.DL, dlArgs);
+                        String[] parts = resp.split(" ");
+                        FilePeer.getInstance().tick(Integer.parseInt(parts[1]));
+                        chunks[index] = parts.length >= 7 ? parts[6] : "";
+                        return;
+                    } catch (IOException e) {
+                        peer.setOffline();
+                        peer.printUpdate(Status.OFFLINE);
+                    }
                 }
-            	catch(IOException e) {
-            		System.out.println("Não foi possível salvar o arquivo " + choose.getName());
-            	}
+                attempts++;
             }
+            success.set(false);
         }
     }
 }
 
-class Item {
-	private String name;
-	private long size;
-	private List<NeighborPeer> list_peers;
-	
-	public Item(String name, long size, NeighborPeer peer) {
-		this.name = name;
-		this.size = size;
-		list_peers = new LinkedList<>();
-		list_peers.add(peer);
-	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		if(this == obj) return true;
-		if(!(obj instanceof Item)) return false;
-		Item other = (Item) obj; //casting
-		return size == other.getSize() && name.equals(other.getName()); // Dois arquivos são iguais com base no size e no nome
-	}
-	
-	@Override
-	public int hashCode() {
-		return Objects.hash(name, size);
-	}
-	
-	public String getName() {
-		return this.name;
-	}
-	
-	public long getSize() {
-		return this.size;
-	}
-	
-	public void addNeighbor(NeighborPeer peer) {
-		list_peers.add(peer);
-	}
-	
-	public List<NeighborPeer> getPeers(){
-		return list_peers;
-	}
-}
-
-class DownloadChunk implements Runnable{
-	private Item fileChoose;
-	private int index_chunk;
-	private int local_chunk;
-	private String[] chunks;
-	private String[] args;
-	private AtomicBoolean sucess;
-	
-	public DownloadChunk(Item fileChoose, int index_chunk, int local_chunk, String[] chunks, String[] args, AtomicBoolean sucess) {
-		this.fileChoose = fileChoose;
-		this.index_chunk = index_chunk;
-		this.local_chunk = local_chunk;
-		this.args = args;
-		this.chunks = chunks;
-		this.sucess = sucess;
-		
-	}
-	
-	public void run() {
-		int error;
-		for(error = 0; error < fileChoose.getPeers().size(); error++) {
-			int index_peer = (index_chunk % fileChoose.getPeers().size() + error) % fileChoose.getPeers().size(); //peer onde será feito o download
-			try {
-        		args[1] = Integer.toString(FilePeer.getInstance().tick());
-        		String[] dlArgs = new String[]{ args[0], args[1], fileChoose.getName(), Integer.toString(local_chunk), 
-        				Integer.toString(index_chunk)};
-        		String fresp = fileChoose.getPeers().get(index_peer).connect(TypeMessages.DL, dlArgs);
-                String[] fp = fresp.split(" ");
-                FilePeer.getInstance().tick(Integer.parseInt(fp[1]));
-                fileChoose.getPeers().get(index_peer).setClock(Integer.parseInt(fp[1]));
-                fileChoose.getPeers().get(index_peer).setOnline(); 
-                fileChoose.getPeers().get(index_peer).printUpdate(Status.ONLINE);
-                String content;
-                if(fp.length != 7) content = ""; //caso o arquivo esteja vazio
-                else content = fp[6];
-                chunks[index_chunk] = content;
-                break;
-        	}
-        	catch(IOException e) {
-        		fileChoose.getPeers().get(index_peer).setOffline();
-        		fileChoose.getPeers().get(index_peer).printUpdate(Status.OFFLINE);
-        	}
-		}
-		if(error == fileChoose.getPeers().size()) sucess.set(false);
-	}
-}

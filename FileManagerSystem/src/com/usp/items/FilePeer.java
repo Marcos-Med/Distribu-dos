@@ -1,6 +1,7 @@
 package com.usp.items;
 
 import java.io.BufferedReader;
+import com.usp.machines.commands.ShowStatistics;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -95,6 +96,7 @@ public class FilePeer {
 		commands.put(3, new ListFiles(fileDirectory));
 		commands.put(9, new Exit(peerList));
 		commands.put(4, new SearchFile(peerList, fileDirectory));
+		commands.put(5, new ShowStatistics());
 		commands.put(6, new AlterChunk(this));
 	}
 	
