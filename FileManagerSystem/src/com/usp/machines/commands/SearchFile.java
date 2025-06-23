@@ -37,7 +37,6 @@ public class SearchFile implements Command {
         for (NeighborPeer peer : peerList) {
             if (peer.getStatus() == Status.ONLINE) {
                 try {
-                    // incrementa relógio e envia LS
                     args[1] = Integer.toString(FilePeer.getInstance().tick());
                     String resp = peer.connect(TypeMessages.LS, args);
                     String[] parts = resp.split(" ");
@@ -143,7 +142,7 @@ public class SearchFile implements Command {
                     .addRecord(new StatisticRecord(localChunk, peerCount, fileSize, duration));
 
         // 10) Mensagem final
-        System.out.println("Download do arquivo " + chosen.getName() + " finalizado.");
+        System.out.printf("Download do arquivo %s finalizado em %.9f s%n", chosen.getName(), duration);
     }
 
     /** Representa uma entrada de arquivo na rede, com peers que o possuem */
@@ -211,6 +210,7 @@ public class SearchFile implements Command {
                         String[] dlArgs = {
                             peer.getAddress() + ":" + peer.getPort(),
                             args[1],
+                            file.getName(),
                             Integer.toString(chunkSize),
                             Integer.toString(index)
                         };
